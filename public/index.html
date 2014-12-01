@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>mSlide</title>
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+	<meta charset='utf-8'>
+	<link rel='stylesheet' href='bower_components/semantic-ui/dist/semantic.min.css'>
+	<link rel='stylesheet' href='app.css'>
+</head>
+<body>
+
+<div id='topnav'>
+	<div class='ui action left icon input' style='width: 100%;'>
+		<i class='search icon'></i>
+		<input type='text' id='input' placeholder='search...'>
+		<div class='ui teal button'>clear</div>
+	</div>
+</div>
+
+<div id='map'></div>
+
+<div id='upload'>
+	<a class='ui right corner label' onclick="this.parentElement.style.display='none';">
+		<i class='close icon'></i>
+	</a>
+	<h1 class='ui header'>rate</h1>
+	<form enctype='multipart/form-data' action='ajax/ratings.php' method='post'>
+		<input id='place_id' name='place_id' type='hidden'>
+		<div class='ui form'>
+			<div class='field'>
+				<label>rating</label>
+				<select name='rating'>
+					<option>1</option>
+					<option>2</option>
+					<option>3</option>
+					<option>4</option>
+					<option>5</option>
+				</select>
+			</div>
+
+			<div class='field'>
+				<label>pic</label>
+				<input name='pic' type='file' accept='image/*' capture='camera'>
+			</div>
+
+			<div>
+				<i class='save icon'></i>
+				<input type='submit'>
+			</div>
+		</div>
+	</form>
+</div>
+
+<div id='viewPics'>
+	<a class='ui right corner label' onclick="this.parentElement.style.display='none';">
+		<i class='close icon'></i>
+	</a>
+
+	<div id='allPics'></div>
+</div>
+
+<script src='bower_components/jquery/dist/jquery.min.js'></script>
+<script src='bower_components/semantic-ui/dist/semantic.min.js'></script>
+<script src='https://maps.googleapis.com/maps/api/js?v=3.17&libraries=places'></script>
+
+<script src='app.js'></script>
+
+</body>
+</html>
