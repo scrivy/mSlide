@@ -42,6 +42,8 @@ function initialize() {
 		$.getJSON('ajax/restaurants.php', { place_id: place.place_id }, function (data) {
 			var address = '';
 
+			console.log(data);
+
 			if (place.address_components) {
 				address = [
 					(place.address_components[0] && place.address_components[0].short_name || ''),
@@ -57,7 +59,7 @@ function initialize() {
 				delete place.opening_hours;
 				delete place.reviews;
 				$.post('ajax/restaurants.php', { data: JSON.stringify(place) });
-			} else {
+			} else if (data.data.length) {
 				that.pics = data.data;
 				content += "<div class='ui labeled icon button' onclick=\"viewPics();\"><i class='film icon'></i>view ratings</div><br><br>";
 			}
@@ -96,8 +98,9 @@ function viewPics() {
 	app.viewPics.style.display = 'block';
 	var content = '';
 
-	app.pics.forEach(function(img) {
-		content += "<img src='ajax/pic.php?picId=" + img + "' style='width: 100%;'><br>";
+	app.pics.forEach(function(pic) {
+		content += 	"<img src='ajax/pic.php?picId=" + pic.id + "' style='width: 100%;'>" +
+					"<div class='ui info message'><div class='header'>comment</div><p>" + pic.comment + "</p></div>";
 	});
 
 	app.allPics.innerHTML = content;

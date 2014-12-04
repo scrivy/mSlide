@@ -29,17 +29,17 @@ function get()
 			'data' => NULL
 		]);
 	} else {
-		$pics = $ratings->find(['place_id' => $placeId], ['_id' => 1]);
+		$pics = $ratings->find(['place_id' => $placeId], ['_id' => 1, 'comment' => 1]);
 
-		$ids = [];
+		$data = [];
 
 		foreach ($pics as $id => $pic)
 		{
-			$ids[] = $id;
+			$data[] = [ 'id' => $id, 'comment' => $pic['comment']];
 		}
 
 		echo json_encode([
-			'data' => $ids
+			'data' => $data
 		]);
 	}
 }
@@ -52,5 +52,9 @@ function post()
 	if (empty ($_POST['data'])) error();
 
 	$place = json_decode($_POST['data']);
+	$place->numOfPics = 0;
+	$place->location = [ $place->geometry->location->B, $place->geometry->location->k ];
+	unset($place->geometry);
+
 	$restaurants->insert($place);
 }
