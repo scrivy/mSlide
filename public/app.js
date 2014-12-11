@@ -87,6 +87,8 @@ function initialize() {
 		that.marker.setPosition(place.geometry.location);
 		that.marker.setVisible(true);
 	});
+
+	google.maps.event.addListener(this.map, 'tilesloaded', updateVisibleRestaurants.bind(this));
 }
 
 function rate(placeId) {
@@ -104,4 +106,24 @@ function viewPics() {
 	});
 
 	app.allPics.innerHTML = content;
+}
+
+function updateVisibleRestaurants() {
+	var bounds 	= this.map.getBounds(),
+		sw 		= bounds.getSouthWest(),
+		ne 		= bounds.getNorthEast()
+	;
+
+	$.getJSON(
+		'ajax/restaurants.php',
+		{
+			bounds: JSON.stringify([
+				[ sw.lng(), sw.lat() ],
+				[ ne.lng(), ne.lat() ]
+			])
+		},
+		function(json) {
+			console.log(json);
+		}
+	);
 }

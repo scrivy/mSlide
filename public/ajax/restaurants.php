@@ -20,28 +20,37 @@ function get()
 	global $ratings;
 
 	$placeId = $_GET['place_id'];
-	if (empty ($placeId)) error();
+	$bounds = json_decode($_GET['bounds']);
 
-	$count = $restaurants->count(['place_id' => $placeId]);
+	if (!empty($placeId)) {
 
-	if ($count === 0) {
-		echo json_encode([
-			'data' => NULL
-		]);
-	} else {
-		$pics = $ratings->find(['place_id' => $placeId], ['_id' => 1, 'comment' => 1]);
+		if ($restaurants->count(['place_id' => $placeId]) === 0) {
+			echo json_encode([
+				'data' => NULL
+			]);
+		} else {
+			$pics = $ratings->find(['place_id' => $placeId], ['_id' => 1, 'comment' => 1]);
+
+			$data = [];
+			foreach ($pics as $id => $pic) {
+				$data[] = [ 'id' => $id, 'comment' => $pic['comment']];
+			}
+		}
+	} elseif (!empty($bounds)) {
 
 		$data = [];
+		$places = $restaurants->find(['location' => ['$geoWithin' => ['$box' => $bounds]]]);
 
-		foreach ($pics as $id => $pic)
-		{
-			$data[] = [ 'id' => $id, 'comment' => $pic['comment']];
+		foreach ($places as $id => $place) {
+			$data[] = $place;
 		}
-
-		echo json_encode([
-			'data' => $data
-		]);
+	} else {
+		error();
 	}
+
+	echo json_encode([
+		'data' => $data
+	]);
 }
 
 function post()
