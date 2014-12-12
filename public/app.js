@@ -11,16 +11,11 @@ function initialize() {
 	this.place_id = document.getElementById('place_id');
 	this.viewPics = document.getElementById('viewPics');
 	this.allPics = document.getElementById('allPics');
+	this.markers = {};
 
 	this.map = new google.maps.Map(document.getElementById('map'), {
 		zoom: 13,
 		center: new google.maps.LatLng(38.55, -121.74)
-	});
-
-	this.infowindow = new google.maps.InfoWindow();
-	this.marker = new google.maps.Marker({
-		map: this.map,
-		anchorPoint: new google.maps.Point(0, -29)
 	});
 
 	this.input = document.getElementById('input');
@@ -31,18 +26,31 @@ function initialize() {
 	this.autocomplete.bindTo('bounds', this.map);
 
 	google.maps.event.addListener(this.autocomplete, 'place_changed', function() {
-		that.infowindow.close();
-		that.marker.setVisible(false);
-		var place = that.autocomplete.getPlace();
-		if (!place.geometry) return;
+	//	that.infowindow.close();
+	//	that.marker.setVisible(false);
+		var res = that.autocomplete.getPlace();
+		if (!res.geometry) return;
 
-		//***************************
-	//	console.log(place);
+		// create the marker if it doesn't exist
+		var place;
+		if (!that.markers[res.place_id]) {
+			delete res.opening_hours;
+			delete res.reviews;
+			place = that.markers[res.place_id] = res;
+			place.marker = new google.maps.Marker({
+				map: that.map,
+				anchorPoint: new google.maps.Point(0, -29)
+			});
+			place.infowindow = new google.maps.InfoWindow();
+		} else {
+			place = that.markers[res.place_id]
+		}
 
 		$.getJSON('ajax/restaurants.php', { place_id: place.place_id }, function (data) {
 			var address = '';
 
-			console.log(data);
+			// **************************
+		//	console.log(data);
 
 			if (place.address_components) {
 				address = [
@@ -56,17 +64,18 @@ function initialize() {
 
 			if (!data.data) {
 				that.pics = [];
-				delete place.opening_hours;
-				delete place.reviews;
-				$.post('ajax/restaurants.php', { data: JSON.stringify(place) });
+				var toSend = $.extend(true, {}, place);
+				delete toSend.infowindow;
+				delete toSend.marker;
+				$.post('ajax/restaurants.php', { data: JSON.stringify(toSend) });
 			} else if (data.data.length) {
 				that.pics = data.data;
 				content += "<div class='ui labeled icon button' onclick=\"viewPics();\"><i class='film icon'></i>view ratings</div><br><br>";
 			}
 
 			content += "<div class='ui labeled icon button' onclick=\"rate('" + place.place_id + "');\"><i class='photo icon'></i>upload</div>";
-			that.infowindow.setContent(content);
-	    	that.infowindow.open(that.map, that.marker);
+			place.infowindow.setContent(content);
+	    	place.infowindow.open(that.map, that.marker);
 		});
 
 		if (place.geometry.viewport) {
@@ -76,7 +85,7 @@ function initialize() {
 			that.map.setZoom(17);
 		}
 
-		that.marker.setIcon({
+		place.marker.setIcon({
 			url: place.icon,
 			size: new google.maps.Size(71, 71),
 			origin: new google.maps.Point(0, 0),
@@ -84,8 +93,8 @@ function initialize() {
 			scaledSize: new google.maps.Size(35, 35)
 		});
 
-		that.marker.setPosition(place.geometry.location);
-		that.marker.setVisible(true);
+		place.marker.setPosition(place.geometry.location);
+		place.marker.setVisible(true);
 	});
 
 	google.maps.event.addListener(this.map, 'tilesloaded', updateVisibleRestaurants.bind(this));
@@ -111,7 +120,8 @@ function viewPics() {
 function updateVisibleRestaurants() {
 	var bounds 	= this.map.getBounds(),
 		sw 		= bounds.getSouthWest(),
-		ne 		= bounds.getNorthEast()
+		ne 		= bounds.getNorthEast(),
+		that  	= this
 	;
 
 	$.getJSON(
@@ -123,7 +133,11 @@ function updateVisibleRestaurants() {
 			])
 		},
 		function(json) {
-			console.log(json);
+			json.data.forEach(function(place) {
+				if (!that.markers[place.place_id]) {
+					that.markers[place.place_id] = place;
+				}
+			});
 		}
 	);
 }

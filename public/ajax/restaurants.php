@@ -24,14 +24,12 @@ function get()
 
 	if (!empty($placeId)) {
 
-		if ($restaurants->count(['place_id' => $placeId]) === 0) {
-			echo json_encode([
-				'data' => NULL
-			]);
-		} else {
-			$pics = $ratings->find(['place_id' => $placeId], ['_id' => 1, 'comment' => 1]);
-
-			$data = [];
+		if ($restaurants->count(['place_id' => $placeId]) > 0) {
+			$pics = $ratings->find(
+				['place_id' => $placeId],
+				['_id' => 1, 'comment' => 1]
+			);
+			
 			foreach ($pics as $id => $pic) {
 				$data[] = [ 'id' => $id, 'comment' => $pic['comment']];
 			}
@@ -39,7 +37,10 @@ function get()
 	} elseif (!empty($bounds)) {
 
 		$data = [];
-		$places = $restaurants->find(['location' => ['$geoWithin' => ['$box' => $bounds]]]);
+		$places = $restaurants->find([
+			'location' => ['$geoWithin' => ['$box' => $bounds]],
+			'numOfPics' => ['$gt' => 0]
+		]);
 
 		foreach ($places as $id => $place) {
 			$data[] = $place;
