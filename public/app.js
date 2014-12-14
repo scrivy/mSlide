@@ -37,14 +37,12 @@ function initialize() {
 		;
 
 		$.getJSON('ajax/restaurants.php', { place_id: place.place_id }, function (json) {
-			if (!json.data) {
+			if (!json.data.length) {
 				var toSend = $.extend(true, {}, place);
 				delete toSend.infowindow;
 				delete toSend.marker;
 				$.post('ajax/restaurants.php', { data: JSON.stringify(toSend) });
 			}
-
-			
 		});
 
 		if (place.geometry.viewport) {
@@ -97,7 +95,7 @@ function checkBounds() {
 			json.data.forEach(function(restaurant) {
 				if (!that.markers[restaurant.place_id]) {
 					addMarker.call(that, restaurant);
-				} else { console.log('exists'); }
+				}
 			});
 		}
 	);
