@@ -23,16 +23,14 @@ function get()
 	$bounds = json_decode($_GET['bounds']);
 
 	if (!empty($placeId)) {
-
-		if ($restaurants->count(['place_id' => $placeId]) > 0) {
-			$pics = $ratings->find(
-				['place_id' => $placeId],
-				['_id' => 1, 'comment' => 1]
-			);
-			
-			foreach ($pics as $id => $pic) {
-				$data[] = [ 'id' => $id, 'comment' => $pic['comment']];
-			}
+		$pics = $ratings->find(
+			['place_id' => $placeId],
+			['_id' => 1, 'comment' => 1]
+		);
+		
+		$data = [];
+		foreach ($pics as $id => $pic) {
+			$data[] = [ 'id' => $id, 'comment' => $pic['comment']];
 		}
 	} elseif (!empty($bounds)) {
 

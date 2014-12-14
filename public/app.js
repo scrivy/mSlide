@@ -32,50 +32,19 @@ function initialize() {
 		if (!res.geometry) return;
 
 		// create the marker if it doesn't exist
-		var place;
-		if (!that.markers[res.place_id]) {
-			delete res.opening_hours;
-			delete res.reviews;
-			place = that.markers[res.place_id] = res;
-			place.marker = new google.maps.Marker({
-				map: that.map,
-				anchorPoint: new google.maps.Point(0, -29)
-			});
-			place.infowindow = new google.maps.InfoWindow();
-		} else {
-			place = that.markers[res.place_id]
-		}
+		var place = that.markers[res.place_id] ?
+			that.markers[res.place_id] : addMarker.call(that, res)
+		;
 
-		$.getJSON('ajax/restaurants.php', { place_id: place.place_id }, function (data) {
-			var address = '';
-
-			// **************************
-		//	console.log(data);
-
-			if (place.address_components) {
-				address = [
-					(place.address_components[0] && place.address_components[0].short_name || ''),
-					(place.address_components[1] && place.address_components[1].short_name || ''),
-					(place.address_components[2] && place.address_components[2].short_name || '')
-				].join(' ');
-			}
-
-			var content = '<div><strong>' + place.name + '</strong><br>' + address + '<br><br>';
-
-			if (!data.data) {
-				that.pics = [];
+		$.getJSON('ajax/restaurants.php', { place_id: place.place_id }, function (json) {
+			if (!json.data) {
 				var toSend = $.extend(true, {}, place);
 				delete toSend.infowindow;
 				delete toSend.marker;
 				$.post('ajax/restaurants.php', { data: JSON.stringify(toSend) });
-			} else if (data.data.length) {
-				that.pics = data.data;
-				content += "<div class='ui labeled icon button' onclick=\"viewPics();\"><i class='film icon'></i>view ratings</div><br><br>";
 			}
 
-			content += "<div class='ui labeled icon button' onclick=\"rate('" + place.place_id + "');\"><i class='photo icon'></i>upload</div>";
-			place.infowindow.setContent(content);
-	    	place.infowindow.open(that.map, that.marker);
+			
 		});
 
 		if (place.geometry.viewport) {
@@ -85,19 +54,10 @@ function initialize() {
 			that.map.setZoom(17);
 		}
 
-		place.marker.setIcon({
-			url: place.icon,
-			size: new google.maps.Size(71, 71),
-			origin: new google.maps.Point(0, 0),
-			anchor: new google.maps.Point(17, 34),
-			scaledSize: new google.maps.Size(35, 35)
-		});
-
-		place.marker.setPosition(place.geometry.location);
-		place.marker.setVisible(true);
+		place.infowindow.open(that.map, place.marker);
 	});
 
-	google.maps.event.addListener(this.map, 'tilesloaded', updateVisibleRestaurants.bind(this));
+	google.maps.event.addListener(this.map, 'tilesloaded', checkBounds.bind(this));
 }
 
 function rate(placeId) {
@@ -105,19 +65,20 @@ function rate(placeId) {
 	app.place_id.value = placeId;
 }
 
-function viewPics() {
-	app.viewPics.style.display = 'block';
+function viewPics(id) {
 	var content = '';
+	$.getJSON('ajax/restaurants.php', { place_id: id }, function (json) {
+		json.data.forEach(function(pic) {
+			content += 	"<img src='ajax/pic.php?picId=" + pic.id + "' style='width: 100%;'>" +
+						"<div class='ui info message'><div class='header'>comment</div><p>" + pic.comment + "</p></div>";
+		});
 
-	app.pics.forEach(function(pic) {
-		content += 	"<img src='ajax/pic.php?picId=" + pic.id + "' style='width: 100%;'>" +
-					"<div class='ui info message'><div class='header'>comment</div><p>" + pic.comment + "</p></div>";
+		app.allPics.innerHTML = content;
+		app.viewPics.style.display = 'block';
 	});
-
-	app.allPics.innerHTML = content;
 }
 
-function updateVisibleRestaurants() {
+function checkBounds() {
 	var bounds 	= this.map.getBounds(),
 		sw 		= bounds.getSouthWest(),
 		ne 		= bounds.getNorthEast(),
@@ -133,11 +94,66 @@ function updateVisibleRestaurants() {
 			])
 		},
 		function(json) {
-			json.data.forEach(function(place) {
-				if (!that.markers[place.place_id]) {
-					that.markers[place.place_id] = place;
-				}
+			json.data.forEach(function(restaurant) {
+				if (!that.markers[restaurant.place_id]) {
+					addMarker.call(that, restaurant);
+				} else { console.log('exists'); }
 			});
 		}
 	);
+}
+
+function addMarker(res) {
+	var that = this;
+
+	delete res.opening_hours;
+	delete res.reviews;
+	this.markers[res.place_id] = res;
+	res.marker = new google.maps.Marker({
+		map: this.map,
+		anchorPoint: new google.maps.Point(0, -29)
+	});
+	res.infowindow = new google.maps.InfoWindow();
+
+	res.marker.setIcon({
+		url: res.icon,
+		size: new google.maps.Size(71, 71),
+		origin: new google.maps.Point(0, 0),
+		anchor: new google.maps.Point(17, 34),
+		scaledSize: new google.maps.Size(35, 35)
+	});
+
+	if (res.location) {
+		res.geometry = {
+			location: {
+				lat: res.location[1],
+				lng: res.location[0]
+			}
+		}
+	}
+
+	res.marker.setPosition(res.geometry.location);
+
+	var address = '';
+
+	if (res.address_components) {
+		address = [
+			(res.address_components[0] && res.address_components[0].short_name || ''),
+			(res.address_components[1] && res.address_components[1].short_name || ''),
+			(res.address_components[2] && res.address_components[2].short_name || '')
+		].join(' ');
+	}
+
+	var content = '<div><strong>' + res.name + '</strong><br>' + address + '<br><br>'
+		+	"<div class='ui labeled icon button' onclick=\"viewPics('" + res.place_id + "');\"><i class='film icon'></i>view ratings</div><br><br>"
+		+	"<div class='ui labeled icon button' onclick=\"rate('" + res.place_id + "');\"><i class='photo icon'></i>upload</div>"
+	;
+
+	res.infowindow.setContent(content);
+	google.maps.event.addListener(res.marker, 'click', function() {
+    	res.infowindow.open(that.map,res.marker);
+  	});
+//	res.marker.setVisible(true);
+
+	return res;
 }
